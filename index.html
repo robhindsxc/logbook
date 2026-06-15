@@ -96,8 +96,23 @@ function toggle(i){logs[i].expanded=!logs[i].expanded;save();render();}
 function addTrain(i){
  openModal('Train','<input id="headcode" placeholder="Headcode" style="text-transform:uppercase"><select id="activity"><option>WORKING</option><option>ACC</option><option>ASST</option><option>PASS</option></select><input id="unit" type="number" inputmode="numeric" placeholder="Unit"><label>Did the train hand over with an existing delay?</label><input id="delaymins" type="number" inputmode="numeric" value="0" placeholder="Delay Minutes"><input id="delayreason" placeholder="Reason for delay">',()=>{
   logs[i].trains.push(headcode.value);
-  logs[i].updates.push({time:stamp(),type:'train',text:'TRAIN ADDED\nHeadcode: '+headcode.value+'\nActivity: '+activity.value+'\nUnit: '+unit.value});
-  save();render();
+
+  logs[i].updates.push({
+   time:stamp(),
+   type:'train',
+   text:'TRAIN ADDED\nHeadcode: '+headcode.value+'\nActivity: '+activity.value+'\nUnit: '+unit.value
+  });
+
+  if((+delaymins.value||0)>0){
+   logs[i].updates.push({
+    time:stamp(),
+    type:'delay',
+    text:'EXISTING DELAY AT HANDOVER\nExisting delay of '+delaymins.value+' minutes due to '+(delayreason.value||'Unknown Reason')+' at handover.'
+   });
+  }
+
+  save();
+  render();
  });
 }
 
