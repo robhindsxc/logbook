@@ -20,7 +20,7 @@ header{background:#A50034;color:#fff;padding:14px;text-align:center;font-size:24
 .box{background:#fff;max-width:700px;margin:40px auto;padding:15px;border-radius:12px}
 .update{border-left:4px solid #A50034;padding-left:8px;margin:8px 0}
 .train{color:#008000;font-weight:bold}
-.delay{color:#c00000;font-weight:bold}.assist{background:#cfe8ff;color:#000;padding:8px;border-radius:8px;font-weight:bold;display:block;border-left:4px solid #0066cc}.tcc{background:#fff59d;color:#000;padding:8px;border-radius:8px;font-weight:bold;display:block;border:3px solid #c00000}
+.delay{color:#c00000;font-weight:bold}.defect{background:#ffffff;border:2px solid #d9d9d9;border-left:6px solid #808080;border-radius:8px;padding:8px;display:block}.safety{background:#fff5f5;border:2px solid #d9d9d9;border-left:6px solid #c00000;border-radius:8px;padding:8px;display:block;color:#c00000;font-weight:bold}.cancelled{background:#ffe5e5;color:#c00000;font-weight:bold;border-left:5px solid #c00000;padding:8px;border-radius:8px;display:block}.assist{background:#cfe8ff;color:#000;padding:8px;border-radius:8px;font-weight:bold;display:block;border-left:4px solid #0066cc}.tcc{background:#fff59d;color:#000;padding:8px;border-radius:8px;font-weight:bold;display:block;border:3px solid #c00000}
 .incidentTable{width:100%;border-collapse:collapse;color:#c00000;font-weight:bold}
 .incidentTable td,.incidentTable th{border:1px solid #ccc;padding:6px}.safety{color:#c00000;font-weight:bold}.deleteBtn{background:#c00000;color:#fff;border:none;border-radius:50%;width:18px;height:18px;padding:0;font-size:11px;line-height:18px;cursor:pointer}.shiftDeleteBtn{background:#c00000;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer}
 .entryGrid{display:grid;grid-template-columns:1fr;gap:6px;max-height:70vh;overflow-y:auto;padding:4px}
@@ -96,25 +96,36 @@ function toggle(i){logs[i].expanded=!logs[i].expanded;save();render();}
 function addTrain(i){
  openModal('Train','<input id="headcode" placeholder="Headcode" style="text-transform:uppercase"><select id="activity"><option>WORKING</option><option>ACC</option><option>ASST</option><option>PASS</option></select><input id="unit" type="number" inputmode="numeric" placeholder="Unit"><label>Did the train hand over with an existing delay?</label><input id="delaymins" type="number" inputmode="numeric" value="0" placeholder="Delay Minutes"><input id="delayreason" placeholder="Reason for delay">',()=>{
   logs[i].trains.push(headcode.value);
-
-  logs[i].updates.push({
-   time:stamp(),
-   type:'train',
-   text:'TRAIN ADDED\nHeadcode: '+headcode.value+'\nActivity: '+activity.value+'\nUnit: '+unit.value
-  });
+  logs[i].updates.push({time:stamp(),type:'train',text:'TRAIN ADDED\nHeadcode: '+headcode.value+'\nActivity: '+activity.value+'\nUnit: '+unit.value});
 
   if((+delaymins.value||0)>0){
    logs[i].updates.push({
     time:stamp(),
     type:'delay',
-    text:'EXISTING DELAY AT HANDOVER\nExisting delay of '+delaymins.value+' minutes due to '+(delayreason.value||'Unknown Reason')+' at handover.'
+    text:'EXISTING DELAY AT HANDOVER\nExisting delay of '+delaymins.value+' minutes due to '+delayreason.value+' at handover.'
    });
   }
 
-  save();
-  render();
+  save();render();
  });
 }
+
+
+function addCancelledTrain(i){
+ openModal(
+  'Train Cancelled',
+  '<input id="cancelHeadcode" placeholder="Headcode" style="text-transform:uppercase"><textarea id="cancelReason" placeholder="Reason for cancellation"></textarea>',
+ ()=>{
+   logs[i].updates.push({
+     time:stamp(),
+     type:'cancelled',
+     text:'🛑 TRAIN CANCELLED\n\n'+cancelHeadcode.value.toUpperCase()+' cancelled due to '+cancelReason.value
+   });
+   save();
+   render();
+ });
+}
+
 
 function addNote(i){openModal('Note','<textarea id="txt"></textarea>',()=>{logs[i].updates.push({time:stamp(),text:txt.value});save();render();});}
 function addGeneric(i,t){openModal(t,'<textarea id="txt"></textarea>',()=>{logs[i].updates.push({time:stamp(),type:'tcc',text:t.toUpperCase()+'\n'+txt.value});save();render();});}
@@ -123,7 +134,7 @@ function addDefect(i){
  openModal('Defect','<textarea id="defect" placeholder="Defect Description"></textarea><input id="pvn" type="number" inputmode="numeric" placeholder="PVN"><label><input type="checkbox" id="safety"> Safety Critical</label>',()=>{
   logs[i].updates.push({
    time:stamp(),
-   type:safety.checked?'safety':'',
+   type:safety.checked?'safety':'defect',
    text:(safety.checked?'⚠️ DEFECT':'DEFECT')+'\nPVN: '+pvn.value+'\nDefect: '+defect.value+'\nSafety Critical: '+(safety.checked?'YES':'NO')
   });
   save();render();
@@ -286,7 +297,7 @@ function addEntryMenu(i){
 
  openModal('Add Entry',`
  <div class="entryGrid">
- <button class="btn entryBtn" onclick="closeModal();addTrain(${i})">🚆<small>TRAIN</small></button>
+ <button class="btn entryBtn" onclick="closeModal();addTrain(${i})">🚆<small>TRAIN</small></button><button class="btn red entryBtn" onclick="closeModal();addCancelledTrain(${i})">🛑<small>TRAIN CANCELLED</small></button>
  <button class="btn entryBtn" onclick="closeModal();addGeneric(${i},'Control / TCC Message')">📞<small>TCC / CONTROL</small></button>
  <button class="btn entryBtn" onclick="closeModal();addDefect(${i})">⚠️<small>DEFECT</small></button>
  <button class="btn entryBtn" onclick="closeModal();addDelay(${i})">⏱<small>DELAY</small></button>
@@ -318,7 +329,7 @@ function render(){
  <button class="btn" onclick="copyReport(${i})">Copy</button><button class="btn gold" onclick="dutyReport(${i})">Duty Report</button><button class="btn gold" onclick="saveCalendar(${i})">Calendar</button>
  <button class="btn" onclick="emailReport(${i})">Email</button><button class="shiftDeleteBtn" onclick="deleteShift(${i})">🗑 Shift</button>
 
- ${x.updates.map((u,n)=>`<div class="update"><b>${u.time}</b><br><span class="${u.type==='train'?'train':''} ${u.type==='delay'?'delay':''} ${u.type==='safety'?'safety':''} ${u.type==='assist'?'assist':''} ${u.type==='tcc'?'tcc':''}">${u.text}</span><br><button class="deleteBtn" onclick="deleteEntry(${i},${n})">✕</button></div>`).join('')}
+ ${x.updates.map((u,n)=>`<div class="update"><b>${u.time}</b><br><span class="${u.type==='train'?'train':''} ${u.type==='delay'?'delay':''} ${u.type==='safety'?'safety':''} ${u.type==='defect'?'defect':''} ${u.type==='assist'?'assist':''} ${u.type==='tcc'?'tcc':''} ${u.type==='cancelled'?'cancelled':''}">${u.text}</span><br><button class="deleteBtn" onclick="deleteEntry(${i},${n})">✕</button></div>`).join('')}
 
  ${x.incidents.map(inc=>`<div class="update">
  <b style="color:#c00000">🚨 ${inc.type||'Incident'}<br>${inc.title}</b>
